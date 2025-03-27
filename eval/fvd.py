@@ -10,6 +10,10 @@ def compute_fvd(feats_fake: np.ndarray, feats_real: np.ndarray) -> float:
     mu_gen, sigma_gen = compute_stats(feats_fake)
     mu_real, sigma_real = compute_stats(feats_real)
 
+    if type(sigma_gen)==np.ndarray and sigma_gen.size == 1:
+        sigma_gen = [[sigma_gen]]
+    if type(sigma_real)==np.ndarray and sigma_real.size == 1:
+        sigma_real = [[sigma_real]]
     m = np.square(mu_gen - mu_real).sum()
     s, _ = scipy.linalg.sqrtm(np.dot(sigma_gen, sigma_real), disp=False)  # pylint: disable=no-member
     fid = np.real(m + np.trace(sigma_gen + sigma_real - s * 2))
@@ -45,8 +49,8 @@ def compute_our_fvd(videos_fake: np.ndarray, videos_real: np.ndarray, device: st
 
 def main():
     # input shape: (b, f, h, w, c)
-    videos_fake = torch.rand(10, 16, 224, 224, 3)
-    videos_real = torch.rand(10, 16, 224, 224, 3)
+    videos_fake = torch.rand(1, 16, 224, 224, 3)
+    videos_real = torch.rand(1, 16, 224, 224, 3)
 
     our_fvd_result = compute_our_fvd(videos_fake, videos_real)
     print(f"[FVD scores] Ours: {our_fvd_result}")

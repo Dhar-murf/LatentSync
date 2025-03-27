@@ -1,14 +1,14 @@
 data:
   syncnet_config_path: configs/syncnet/syncnet_16_pixel_attn.yaml
   train_output_dir: debug/unet
-  train_fileslist: /mnt/bn/maliva-gen-ai-v2/chunyu.li/fileslist/data_v9_syncnet.txt
+  train_fileslist: /home/ubuntu/train_file_list.txt
   train_data_dir: ""
-  audio_embeds_cache_dir: /mnt/bn/maliva-gen-ai-v2/chunyu.li/audio_cache/whisper_new
-  audio_mel_cache_dir: /mnt/bn/maliva-gen-ai-v2/chunyu.li/audio_cache/mel_new
+  audio_embeds_cache_dir: /home/ubuntu/audio_cache/embeds
+  audio_mel_cache_dir: /home/ubuntu/audio_cache/mel_new
 
   val_video_path: assets/demo1_video.mp4
   val_audio_path: assets/demo1_audio.wav
-  batch_size: 1 # 24
+  batch_size: 28 # 24
   num_workers: 12 # 12
   num_frames: 16
   resolution: 256
@@ -19,8 +19,9 @@ data:
   audio_feat_length: [2, 2]
 
 ckpt:
-  resume_ckpt_path: checkpoints/latentsync_unet.pt
-  save_ckpt_steps: 10000
+  resume_ckpt_path: ""
+  save_ckpt_steps: 1000
+  log_steps: 15
 
 run:
   pixel_space_supervise: false

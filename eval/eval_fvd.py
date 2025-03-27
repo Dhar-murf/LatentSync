@@ -93,10 +93,11 @@ def eval_fvd(real_videos_dir: str, fake_videos_dir: str):
     fvd = FVD()
     real_videos = fvd.detect_videos(real_videos_dir)
     fake_videos = fvd.detect_videos(fake_videos_dir)
-    print(compute_our_fvd(real_videos, fake_videos, device="cpu"))
+    return compute_our_fvd(real_videos, fake_videos, device="cpu")
 
 
 if __name__ == "__main__":
-    real_videos_dir = "dir1"
-    fake_videos_dir = "dir2"
+    real_videos_dir = "assets/demo1_video.mp4"
+    fake_videos_dir = "/home/ubuntu/LatentSync/debug/unet/train-2025_03_27-06:34:12/val_videos/val_video_11.mp4"
     eval_fvd(real_videos_dir, fake_videos_dir)
+    print()

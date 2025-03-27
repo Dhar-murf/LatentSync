@@ -51,7 +51,14 @@ from latentsync.trepa.loss import TREPALoss
 from eval.syncnet import SyncNetEval
 from eval.syncnet_detect import SyncNetDetector
 from eval.eval_sync_conf import syncnet_eval
+from eval.eval_fvd import eval_fvd
 import lpips
+import wandb
+wandb_run = wandb.init(
+                # entity="batch_1_frame_5_num_workers_1",
+                project="latent_sync_replicate_2",
+                name="stage_1_base_line"
+                )
 
 
 logger = get_logger(__name__)
@@ -255,7 +262,7 @@ def main(config):
 
     # Support mixed-precision training
     scaler = torch.amp.GradScaler("cuda") if config.run.mixed_precision_training else None
-
+    wandb_run.config.update(OmegaConf.to_container(config, resolve=True))
     for epoch in range(first_epoch, num_train_epochs):
         train_dataloader.sampler.set_epoch(epoch)
         denoising_unet.train()
@@ -412,6 +419,13 @@ def main(config):
                 + lpips_loss * config.run.perceptual_loss_weight
                 + trepa_loss * config.run.trepa_loss_weight
             )
+            if is_main_process and (global_step % config.ckpt.log_steps == 0):
+                wandb_run.log({"train/loss": loss, 
+                               "train/loss_recon": recon_loss * config.run.recon_loss_weight,
+                               "train/loss_sync": sync_loss * config.run.sync_loss_weight,
+                               "train/loss_lpips":lpips_loss * config.run.perceptual_loss_weight,
+                               "train/loss_trepa": trepa_loss * config.run.trepa_loss_weight,
+                               "train/epoch": epoch}, step=progress_bar.last_print_n)
 
             train_step_list.append(global_step)
 
@@ -487,6 +501,16 @@ def main(config):
                     except Exception as e:
                         logger.info(e)
                         conf = 0
+                    try: 
+                        fvd_score = eval_fvd(config.data.val_video_path, validation_video_out_path)
+                    except Exception as e:
+                        logger.info(e)
+                        fvd_score=1e6
+
+                    wandb_run.log({"validate/sync_conf":conf, 
+                                   "validate/fvd_score":fvd_score, 
+                                   "train/epoch": epoch}, step=progress_bar.last_print_n)
+                    print("fvd_score", fvd_score)
                     sync_conf_list.append(conf)
                     plot_loss_chart(
                         os.path.join(output_dir, f"sync_conf_results/sync_conf_chart-{global_step}.png"),
