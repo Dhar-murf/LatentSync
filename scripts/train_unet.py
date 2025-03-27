@@ -431,28 +431,8 @@ def main(config):
 
             optimizer.zero_grad()
 
-            # Backpropagate
-            if config.run.mixed_precision_training:
-                scaler.scale(loss).backward()
-                """ >>> gradient clipping >>> """
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(trainable_params, config.optimizer.max_grad_norm)
-                """ <<< gradient clipping <<< """
-                scaler.step(optimizer)
-                scaler.update()
-            else:
-                loss.backward()
-                """ >>> gradient clipping >>> """
-                torch.nn.utils.clip_grad_norm_(trainable_params, config.optimizer.max_grad_norm)
-                """ <<< gradient clipping <<< """
-                optimizer.step()
-
             # Check the grad of attn blocks for debugging
             # print(denoising_unet.module.up_blocks[3].attentions[2].transformer_blocks[0].attn2.to_q.weight.grad)
-
-            lr_scheduler.step()
-            progress_bar.update(1)
-            global_step += 1
 
             ### <<<< Training <<<< ###
 
@@ -520,6 +500,25 @@ def main(config):
             logs = {"step_loss": loss.item(), "epoch": epoch}
             progress_bar.set_postfix(**logs)
 
+            # Backpropagate
+            if config.run.mixed_precision_training:
+                scaler.scale(loss).backward()
+                """ >>> gradient clipping >>> """
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(trainable_params, config.optimizer.max_grad_norm)
+                """ <<< gradient clipping <<< """
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                loss.backward()
+                """ >>> gradient clipping >>> """
+                torch.nn.utils.clip_grad_norm_(trainable_params, config.optimizer.max_grad_norm)
+                """ <<< gradient clipping <<< """
+                optimizer.step()
+            
+            lr_scheduler.step()
+            progress_bar.update(1)
+            global_step += 1
             if global_step >= config.run.max_train_steps:
                 break
 
