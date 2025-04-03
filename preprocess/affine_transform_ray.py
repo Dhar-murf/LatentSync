@@ -85,7 +85,7 @@ def combine_video_audio(video_frames, video_input_path, video_output_path, proce
     os.remove(video_temp)
 
 
-@ray.remote(num_gpus=1 / 200, num_cpus=52) 
+@ray.remote(num_gpus=1 / 12) 
 def func(paths, process_temp_dir, device_id, resolution):
     os.makedirs(process_temp_dir, exist_ok=True)
     face_detector = FaceDetector(resolution, f"cuda:{device_id}")
@@ -157,11 +157,7 @@ if __name__ == "__main__":
     num_workers = 10  # How many processes per device
 
     # Get number of available GPUs
-    NUM_GPUS = torch.cuda.device_count()
-    BROKERS_PER_GPU = 2  # Number of brokers to run on each GPU
-    TOTAL_BROKERS = NUM_GPUS * BROKERS_PER_GPU
 
-    print(f"Total GPUs: {NUM_GPUS}, Running {TOTAL_BROKERS} brokers")
     start_time = time.time()
     affine_transform_multi_gpus(input_dir, output_dir, temp_dir, resolution, num_workers)
     print("total _time_take: ", time.time()-start_time)

@@ -36,6 +36,11 @@ from ..whisper.audio2feature import Audio2Feature
 import tqdm
 import soundfile as sf
 
+import sys
+sys.path.append("/home/ubuntu/GPEN/")
+from face_enhancement import FaceEnhancement
+import argparse
+
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
@@ -118,6 +123,11 @@ class LipsyncPipeline(DiffusionPipeline):
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
 
         self.set_progress_bar_config(desc="Steps")
+
+        args_dict = {'channel_multiplier': 2, 'narrow':1, 'key':None, 'sr_model':'/home/ubuntu/GPEN/weights/realesrnet', 'sr_scale':1, 'tile_size':0, 'alpha': 1, 'use_sr':False, 'use_cuda':True, 'in_size':512}
+        args = argparse.Namespace(**args_dict)
+        self.FaceEnhancement_processer = FaceEnhancement(args, base_dir='', in_size=args.in_size, model="/home/ubuntu/GPEN/weights/GPEN-BFR-512", use_sr=args.use_sr, device='cpu')
+
 
     def enable_vae_slicing(self):
         self.vae.enable_slicing()
@@ -272,12 +282,16 @@ class LipsyncPipeline(DiffusionPipeline):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
             width = int(x2 - x1)
-            face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
-            face = rearrange(face, "c h w -> h w c")
-            face = (face / 2 + 0.5).clamp(0, 1)
-            face = (face * 255).to(torch.uint8).cpu().numpy()
+            face2 = rearrange(face, "c h w -> h w c")
+            face2 = (face2 / 2 + 0.5).clamp(0, 1)
+            face2 = (face2 * 255).to(torch.uint8).cpu().numpy()
+            out, _, _ = self.FaceEnhancement_processer.process(face2, aligned=True)
+            out = torch.tensor(out)
+            out = rearrange(out, "h w c -> c h w ")
+            out = torchvision.transforms.functional.resize(out, size=(height, width), antialias=True).cpu().numpy()
+            out = rearrange(out, "c h w -> h w c")
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
-            out_frame = self.image_processor.restorer.restore_img(video_frames[index], face, affine_matrices[index])
+            out_frame = self.image_processor.restorer.restore_img(video_frames[index], out, affine_matrices[index])
             out_frames.append(out_frame)
         return np.stack(out_frames, axis=0)
 
@@ -329,7 +343,7 @@ class LipsyncPipeline(DiffusionPipeline):
         weight_dtype: Optional[torch.dtype] = torch.float16,
         eta: float = 0.0,
         mask: str = "fix_mask",
-        mask_image_path: str = "latentsync/utils/mask.png",
+        mask_image_path: str = "/home/ubuntu/LatentSync/latentsync/utils/mask.png",
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
         callback_steps: Optional[int] = 1,
@@ -466,6 +480,7 @@ class LipsyncPipeline(DiffusionPipeline):
             decoded_latents = self.paste_surrounding_pixels_back(
                 decoded_latents, ref_pixel_values, 1 - masks, device, weight_dtype
             )
+            # decoded_latents = self.FaceEnhancement_processer.process(decoded_latents, aligned=True)
             synced_video_frames.append(decoded_latents)
             # masked_video_frames.append(masked_pixel_values)
 

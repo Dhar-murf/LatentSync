@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+sys.path.append('/home/ubuntu/LatentSync/')
+
 import argparse
 import os
 from omegaconf import OmegaConf
@@ -37,12 +40,12 @@ def main(config, args):
     print(f"Input audio path: {args.audio_path}")
     print(f"Loaded checkpoint path: {args.inference_ckpt_path}")
 
-    scheduler = DDIMScheduler.from_pretrained("configs")
+    scheduler = DDIMScheduler.from_pretrained("/home/ubuntu/LatentSync/configs")
 
     if config.model.cross_attention_dim == 768:
-        whisper_model_path = "checkpoints/whisper/small.pt"
+        whisper_model_path = "/home/ubuntu/LatentSync/checkpoints/whisper/small.pt"
     elif config.model.cross_attention_dim == 384:
-        whisper_model_path = "checkpoints/whisper/tiny.pt"
+        whisper_model_path = "/home/ubuntu/LatentSync/checkpoints/whisper/tiny.pt"
     else:
         raise NotImplementedError("cross_attention_dim must be 768 or 384")
 
